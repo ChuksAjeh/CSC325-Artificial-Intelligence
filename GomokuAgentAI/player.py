@@ -1,7 +1,7 @@
 import numpy as np
 
 from misc import legalMove
-from misc import winTest as winTest
+from misc import winningTest as winTest
 from gomokuAgent import GomokuAgent
 
 
