@@ -15,16 +15,22 @@ class Player(GomokuAgent):
             if legalMove(board, moveLoc):
                 break
 
-        bestMove = moveLoc
-        bestMoveVal = -1000
+
+        bestMoveLoc = moveLoc
+        bestMoveVal = 999
         for move in self.potentialMoves(board):
             boardPrime = board
             boardPrime[move] = 1
-            moveVal = self.miniMax(boardPrime, False)
-            if moveVal > bestMoveVal:
-                bestMove = move
+            # Move value here is depth to end state
+            moveVal = self.miniMax(boardPrime, 0, False)
+            if moveVal < bestMoveVal and moveVal > 0:
+                bestMoveLoc = move
                 bestMoveVal = moveVal
-        return bestMove
+            elif moveVal == 0 and bestMoveVal == 999:
+                bestMoveLoc = move
+            print(moveVal)
+            break
+        return bestMoveLoc
 
     def potentialMoves(self, board):
         allMoves = []
@@ -36,29 +42,51 @@ class Player(GomokuAgent):
                     allMoves.append(moveLoc)
         return allMoves
 
-    def score(self, board):
+    def score(self, board, depth):
         if winTest(1, board, self.X_IN_A_LINE):
-            return 10
+            return depth
         elif winTest(-1, board, self.X_IN_A_LINE):
-            return -10
+            return -depth
         elif not 0 in board:
             return 0
 
-    def miniMax(self, board, isMaximising):
+    def isTerminalState(self, board):
+        if winTest(1, board, self.X_IN_A_LINE) or winTest(-1, board, self.X_IN_A_LINE) or not 0 in board:
+            return True
+        return False
 
-        if winTest(1, board, self.X_IN_A_LINE) or winTest(-1, board, self.X_IN_A_LINE) or not (0 in board):
-            return self.score(board)
+    def miniMax(self, board, depth, isMaximising):
+        depth += 1
+
+        if self.isTerminalState(board):
+            return self.score(board, depth)
         else:
-            moveVal = -1000
             if isMaximising:
+                bestMoveVal = 999
                 for move in self.potentialMoves(board):
                     boardPrime = board
                     boardPrime[move] = 1
-                    moveVal = max(self.miniMax(boardPrime, False), moveVal)
+                    moveVal = self.miniMax(boardPrime, depth, False)
+                    if bestMoveVal == 0 and moveVal > 0:
+                        bestMoveVal = moveVal
+                    elif moveVal > 0 and moveVal < bestMoveVal:
+                        bestMoveVal = moveVal
+                    elif moveVal == 0 and bestMoveVal == 999:
+                        bestMoveVal = moveVal
+
             else:
+                bestMoveVal = -999
                 for move in self.potentialMoves(board):
                     boardPrime = board
                     boardPrime[move] = -1
-                    moveVal = min(self.miniMax(boardPrime, True), moveVal)
-            return moveVal
+                    moveVal = self.miniMax(boardPrime, depth, True)
+
+                    if bestMoveVal == 0 and moveVal < 0:
+                        bestMoveVal = moveVal
+                    elif moveVal < 0 and moveVal > bestMoveVal:
+                        bestMoveVal = moveVal
+                    elif moveVal == 0 and bestMoveVal == -999:
+                        bestMoveVal = moveVal
+
+            return bestMoveVal
 
