@@ -1,5 +1,6 @@
 import numpy as np
-import copy
+import time
+
 from misc import legalMove
 from misc import winningTest as winTest
 from gomokuAgent import GomokuAgent
@@ -8,217 +9,337 @@ from gomokuAgent import GomokuAgent
 class Player(GomokuAgent):
 
     def move(self, board):
-        temp_board = np.array(board)
+
+        startTime = time.time()
+        print("Player", self.ID)
+
+        if self.ID == -1:
+            board *= -1
+
         while True:
             moveLoc = tuple(np.random.randint(self.BOARD_SIZE, size=2))
             if legalMove(board, moveLoc):
                 break
 
-        checked_move = self.check(board, 3)
-        if checked_move != [-1, -1]:
-            print("move =", checked_move)
-            #self.successors(checked_move, temp_board)
-            return tuple(checked_move)
-
-        checked_move = self.check(board, 2)
-        if checked_move != [-1, -1]:
-            print("move =", checked_move)
-            #self.successors(checked_move, temp_board)
-            return tuple(checked_move)
-
-        bestMove = moveLoc
+        bestMoveLoc = moveLoc
         bestMoveVal = -1000
-        for move in self.potentialMoves(board):
-            boardPrime = board
-            boardPrime[move] = 1
-            moveVal = self.miniMax(boardPrime, False)
-            if moveVal > bestMoveVal:
-                bestMove = move
-                bestMoveVal = moveVal
 
-        #print("PLAYER: ", self.ID, " bestMove", bestMove)
-        # print("ending board", board)
-        #self.successors(bestMove, temp_board)
-        return bestMove
+        moves, counter = self.potentialMoves(board)
+        i = 0
+        for move in moves:
+            #print("index =", index)
+            bias = counter[i]
+            i += 1
+            print("move", move, "bias", bias)
+            boardPrime = np.array(board)
+
+            boardPrime[move] = 1
+            moveVal = self.miniMax(boardPrime, 3, -10000, 10000, False)
+
+            if bias != 0:
+                if bias == 4:
+                    moveVal += 200
+                if bias == 3:
+                    moveVal += 40
+                if bias == 2:
+                    moveVal += 20
+
+
+            if moveVal > bestMoveVal:
+                bestMoveVal = moveVal
+                bestMoveLoc = move
+
+        executionTime = (time.time() - startTime)
+        print('Execution time in seconds:' + str(executionTime))
+
+        print(bestMoveLoc)
+        return bestMoveLoc
 
     def potentialMoves(self, board):
-        allMoves = []
-        boardSize = board.shape[0]
-        for i in range(boardSize):
-            for j in range(boardSize):
-                moveLoc = (i, j)
-                if legalMove(board, moveLoc):
-                    allMoves.append(moveLoc)
-        return allMoves
+        moves = []
+        counters = []
+        i = 4
+        while i > 1 and not moves:
+
+            for move in self.check(board, i, False):
+                if move not in moves:
+                    moves.append(move)
+                    counters.append(i)
+            for move in self.check_gap(board, i, False):
+                if move not in moves:
+                    moves.append(move)
+                    counters.append(i)
+
+            for move in self.check(board, i, True):
+                if move not in moves:
+                    moves.append(move)
+                    counters.append(i)
+            for move in self.check_gap(board, i, True):
+                if move not in moves:
+                    moves.append(move)
+                    counters.append(i)
+            i -= 1
+
+
+        while not moves:
+            moveLoc = tuple(np.random.randint(self.BOARD_SIZE, size=2))
+            if legalMove(board, moveLoc):
+                moves.append(moveLoc)
+                counters.append(0)
+                break
+        set(moves)
+        return moves, counters
 
     def score(self, board):
-        if winTest(1, board, self.X_IN_A_LINE):
-            return 10
-        elif winTest(-1, board, self.X_IN_A_LINE):
-            return -10
+        def rowCount(playerID, board, X_IN_A_LINE):
+            BOARD_SIZE = board.shape[0]
+            total_in_line = 0
+            for r in range(BOARD_SIZE):
+                for c in range(BOARD_SIZE - X_IN_A_LINE + 1):
+                    cur_run_count = 0
+                    for i in range(X_IN_A_LINE):
+                        if board[r, c + i] == playerID:
+                            cur_run_count += 1
+                            if cur_run_count == 2:
+                                total_in_line += 2
+                            elif cur_run_count > 2:
+                                total_in_line += 1
+                        else:
+                            break
+            return total_in_line
+
+        def diagCount(playerID, board, X_IN_A_LINE):
+            BOARD_SIZE = board.shape[0]
+            total_in_line = 0
+            for r in range(BOARD_SIZE - X_IN_A_LINE + 1):
+                for c in range(BOARD_SIZE - X_IN_A_LINE + 1):
+                    cur_run_count = 0
+                    for i in range(X_IN_A_LINE):
+                        if board[r + i, c + i] == playerID:
+                            cur_run_count += 1
+                            if cur_run_count == 2:
+                                total_in_line += 2
+                            elif cur_run_count > 2:
+                                total_in_line += 1
+                        else:
+                            break
+            return total_in_line
+
+        def diagPlusRowCount(playerID, board, X_IN_A_LINE):
+            return diagCount(playerID, board, X_IN_A_LINE) + rowCount(playerID, board, X_IN_A_LINE)
+
+        boardPrime = np.array(board)
+        boardPrimeRot = np.rot90(np.array(boardPrime))
+
+        player_score = diagPlusRowCount(1, boardPrime, self.X_IN_A_LINE) + \
+                       diagPlusRowCount(1, boardPrimeRot, self.X_IN_A_LINE)
+
+        opp_score = diagPlusRowCount(-1, boardPrime, self.X_IN_A_LINE) + \
+                    diagPlusRowCount(-1, boardPrimeRot, self.X_IN_A_LINE)
+
+        if winTest(1, boardPrime, self.X_IN_A_LINE):
+            return 100
+        elif winTest(-1, boardPrime, self.X_IN_A_LINE):
+            return -100
         elif not 0 in board:
             return 0
 
-    def miniMax(self, board, isMaximising):
+        return player_score - opp_score
 
-        if winTest(1, board, self.X_IN_A_LINE) or winTest(-1, board, self.X_IN_A_LINE) or not (0 in board):
+    def isTerminalState(self, board):
+        if winTest(1, board, self.X_IN_A_LINE) or winTest(-1, board, self.X_IN_A_LINE) or not 0 in board:
+            return True
+        return False
+
+    def miniMax(self, board, depth, alpha, beta, isMaximising):
+
+
+        if self.isTerminalState(board) or depth == 0:
             return self.score(board)
         else:
-            moveVal = -1000
             if isMaximising:
-                for move in self.potentialMoves(board):
-                    boardPrime = board
+                moveVal = -1000
+                moves, bias = self.potentialMoves(board)
+                for move in moves:
+                    boardPrime = np.array(board)
                     boardPrime[move] = 1
-                    moveVal = max(self.miniMax(boardPrime, False), moveVal)
-            else:
-                for move in self.potentialMoves(board):
-                    boardPrime = board
-                    boardPrime[move] = -1
-                    moveVal = min(self.miniMax(boardPrime, True), moveVal)
-            return moveVal
+                    newMoveVal = self.miniMax(boardPrime, depth - 1, alpha, beta, False)
+                    if bias != 0:
+                        if bias == 4:
+                            newMoveVal += 60
+                        if bias == 3:
+                            newMoveVal += 40
+                        if bias == 2:
+                            newMoveVal += 20
 
-    def counter_row(self, playerID, board, X_IN_A_LINE):
+                    moveVal = max(newMoveVal, moveVal)
+                    alpha = max(alpha, moveVal)
+                    if beta <= alpha:
+                        break
+                return moveVal
+            else:
+                moveVal = 1000
+                moves, bias = self.potentialMoves(board)
+                for move in moves:
+                    boardPrime = np.array(board)
+                    boardPrime[move] = -1
+                    newMoveVal = self.miniMax(boardPrime, depth - 1, alpha, beta, True)
+                    if bias != 0:
+                        if bias == 4:
+                            newMoveVal -= 60
+                        if bias == 3:
+                            newMoveVal -= 40
+                        if bias == 2:
+                            newMoveVal -= 20
+
+                    moveVal = min(newMoveVal, moveVal)
+                    beta = min(alpha, moveVal)
+                    if beta <= alpha:
+                        break
+                return moveVal
+
+    def row_enders(self, board, X_IN_A_LINE, moves, isCounter, isrotated):
+        identity = self.ID
+        if isCounter:
+            if self.ID == 1:
+                identity = -1
+
         BOARD_SIZE = board.shape[0]
-        position = [50, 50]
         for r in range(BOARD_SIZE):
             for c in range(BOARD_SIZE - X_IN_A_LINE + 1):
                 flag = True
                 for i in range(X_IN_A_LINE):
-                    if board[r, c + i] != playerID:
+                    if board[r, c + i] != identity:
                         flag = False
                         break
                 if flag:
-                    if c + X_IN_A_LINE + 1 < BOARD_SIZE and board[r, (c + X_IN_A_LINE)] == playerID \
-                            and board[r, (c + X_IN_A_LINE) + 1] == 0:
-                        print("move found1", [r, c + X_IN_A_LINE + 1])
-                        position = [r, c + X_IN_A_LINE + 1]
-                        return position
-                    if c + X_IN_A_LINE + 1 < BOARD_SIZE and board[r, (c + X_IN_A_LINE)] == 0:
-                        print("move found2", [r, c + X_IN_A_LINE])
-                        position = [r, c + X_IN_A_LINE]
-                        return position
+                    if c + X_IN_A_LINE < BOARD_SIZE and board[r, (c + X_IN_A_LINE)] == 0:
+                        position = (r, c + X_IN_A_LINE)
+                        if position not in moves:
+                            moves.append(position)
                     if c - 1 > -1 and board[r, c - 1] == 0:
-                        print("move found3", [r, c - 1])
-                        position = [r, c - 1]
-                        return position
+                        position = (r, c - 1)
+                        if position not in moves:
+                            moves.append(position)
+        return moves
 
-        return position
+    def diag_enders(self, board, X_IN_A_LINE, moves, isCounter, isrotated):
+        identity = self.ID
+        if isCounter:
+            if self.ID == 1:
+                identity = -1
 
-    def counter_diag(self, playerID, board, X_IN_A_LINE):
         BOARD_SIZE = board.shape[0]
-        position = [50, 50]
         for r in range(BOARD_SIZE - X_IN_A_LINE + 1):
             for c in range(BOARD_SIZE - X_IN_A_LINE + 1):
                 flag = True
                 for i in range(X_IN_A_LINE):
-                    if board[r + i, c + i] != playerID:
+                    if board[r + i, c + i] != identity:
                         flag = False
                         break
                 if flag:
-                    if c + X_IN_A_LINE + 1 < BOARD_SIZE and r + X_IN_A_LINE + 1 < BOARD_SIZE \
-                            and board[(r + X_IN_A_LINE), (c + X_IN_A_LINE)] == playerID \
-                            and board[(r + X_IN_A_LINE) + 1, (c + X_IN_A_LINE) + 1] == 0:
-                        print("moves found4", [r + X_IN_A_LINE + 1, c + X_IN_A_LINE + 1])
-                        position = [r + X_IN_A_LINE + 1, c + X_IN_A_LINE + 1]
-                        return position
-
                     if c + X_IN_A_LINE < BOARD_SIZE and r + X_IN_A_LINE < BOARD_SIZE \
                             and board[(r + X_IN_A_LINE), (c + X_IN_A_LINE)] == 0:
-                        print("moves found5", [r + X_IN_A_LINE, c + X_IN_A_LINE])
-                        position = [r + X_IN_A_LINE, c + X_IN_A_LINE]
-                        return position
+                        position = (r + X_IN_A_LINE, c + X_IN_A_LINE)
+                        if position not in moves:
+                            moves.append(position)
 
                     if c - 1 > -1 and r - 1 > -1 and board[r - 1, c - 1] == 0:
-                        print("moves found6", [r - 1, c - 1])
-                        position = [r - 1, c - 1]
-                        return position
+                        position = (r - 1, c - 1)
+                        if position not in moves:
+                            moves.append(position)
+        return moves
 
-        return position
+    def row_gap(self, board, X_IN_A_LINE, moves, isCounter, isrotated):
+        identity = self.ID
+        if isCounter:
+            if self.ID == 1:
+                identity = -1
 
-    def check(self, board, i):
-        board_rot = copy.copy(board)
-        board_rot = np.rot90(board_rot, 3)
-        identity = 1
-        amount = i
-        position = [-1, -1]
+        position = (-1, -1)
+        BOARD_SIZE = board.shape[0]
+        for r in range(BOARD_SIZE):
+            for c in range(BOARD_SIZE - X_IN_A_LINE + 1):
+                count = 0
 
-        if self.ID == 1:
-            identity = -1
+                for i in range(X_IN_A_LINE):
+                    if board[r, c + X_IN_A_LINE -1] == 0 or board[r,c] == 0:
+                        break
+                    if board[r, c + i] != identity and count < 2:
+                        count += 1
+                        position = (r, c + i)
 
-        move = self.counter_diag(identity, board, amount)
-        if move != [50, 50]:
-            return move
 
-        move = self.counter_diag(identity, board_rot, amount)
-        if move != [50, 50]:
-            board_rot[tuple(move)] = 5
-            board_rot = np.rot90(board_rot)
-            move = list(np.where(board_rot == 5))
-            return move
+                if 2 > count > 0:
+                    if board[position] == 0:
+                      #  print(moves, " pos ro ", isrotated, position)
+                        moves.append(position)
+                count = 0
+        return moves
 
-        move = self.counter_row(identity, board, amount)
-        if move != [50, 50]:
-            return move
+    def diag_gap(self, board, X_IN_A_LINE, moves, isCounter, isrotated):
+        identity = self.ID
+        if isCounter:
+            if self.ID == 1:
+                identity = -1
 
-        move = self.counter_row(identity, board_rot, amount)
-        if move != [50, 50]:
-            board_rot[tuple(move)] = 5
-            board_rot = np.rot90(board_rot)
-            move = np.where(board_rot == 5)
-            return move
+        position = (-1, -1)
+        BOARD_SIZE = board.shape[0]
+        for r in range(BOARD_SIZE - X_IN_A_LINE + 1):
+            for c in range(BOARD_SIZE - X_IN_A_LINE + 1):
+                count = 0
+                for i in range(X_IN_A_LINE):
+                    if board[r + X_IN_A_LINE - 1, c + X_IN_A_LINE -1] == 0 or board[r, c] == 0:
+                        break
+                    if board[r + i, c + i] != identity and count < 2:
+                        count += 1
+                        position = (r + i, c + i)
+                if 2 > count > 0:
+                    if board[position] == 0:
+                       # print(moves, " pos di ", isrotated, position)
+                        moves.append(position)
 
-        return position
+                count = 0
+        return moves
 
-    # return a list of succesors
-    # {
-    #     {0,0,0},
-    #     {0,1,0},
-    #     {0,0,0},
-    # }
-    def successors(self, bestMove, board):
-        successors = []
-        i = bestMove[0]
-        j = bestMove[1]
-        # right
-        if 0 < i + 1 <= self.BOARD_SIZE and 0 < j <= self.BOARD_SIZE:
-            successors.append(("right", board[i + 1, j]))  # DONE
-        else:
-            successors.append(("right", 99))
-        # left
-        if 0 < (i - 1) <= self.BOARD_SIZE and 0 < j <= self.BOARD_SIZE:
-            successors.append(("left", board[i - 1, j], (i - 1, j)))  # DONE
-        else:
-            successors.append(("left", 99))
-        # # up
-        if 0 < i <= self.BOARD_SIZE and 0 < (j + 1) <= self.BOARD_SIZE:
-            successors.append(("DOWN", board[i, j + 1]))  # DONE
-        else:
-            successors.append(("down ", 99))
-        # # Up left
-        if 0 < (i - 1) <= self.BOARD_SIZE and 0 < (j + 1) <= self.BOARD_SIZE:
-            successors.append(("DOWN left", board[i - 1, j + 1]))  # DONE
-        else:
-            successors.append(("down left", 99))
-        # # up right:
 
-        if 0 < (i + 1) <= self.BOARD_SIZE and 0 < (j + 1) <= self.BOARD_SIZE:
-            successors.append(("DOWN right", board[i + 1, j + 1]))  # DONE
-        else:
-            successors.append(("down right", 99))
-        # # down
-        if 0 < i <= self.BOARD_SIZE and 0 < (j - 1) <= self.BOARD_SIZE:
-            successors.append(("UP", board[i, j - 1], (i, j - 1)))  # DONE
-        else:
-            successors.append(("up", 99))
-        # # down left:
-        if 0 < (i - 1) <= self.BOARD_SIZE and 0 < (j - 1) <= self.BOARD_SIZE:
-            successors.append(("UP left", board[i - 1, j - 1]))  # DONE
-        else:
-            successors.append(("up left", 99))
-        # # down right:
-        if 0 < (i + 1) <= self.BOARD_SIZE and 0 < (j - 1) <= self.BOARD_SIZE:
-            successors.append(("UP right", board[i + 1, j - 1]))  # DONE
-        else:
-            successors.append(("up right", 99))
+    def check(self, board, amount, isCounter):
+        board_rot = np.rot90(np.array(board), 3)
+        moves = []
+        rot_moves = []
+        self.diag_enders(board, amount, moves, isCounter,1)
+        self.diag_enders(board_rot, amount, rot_moves, isCounter,2)
+        self.row_enders(board, amount, moves, isCounter,1)
+        self.row_enders(board_rot, amount, rot_moves, isCounter,2)
 
-        print("PLAYER: ", self.ID, " ", successors)
+        for move in rot_moves:
+            board_rot_temp = np.array(board_rot)
+            board_rot_temp[move] = 5
+            board_rot_temp = np.rot90(board_rot_temp)
+            np_move = np.where(board_rot_temp == 5)
+            true_move = (np_move[0][0], np_move[1][0])
+            if true_move not in moves:
+                moves.append(true_move)
+        return moves
+
+    def check_gap(self, board, amount, isCounter):
+        board_rot = np.rot90(np.array(board), 3)
+        moves = []
+        rot_moves = []
+
+        self.row_gap(board, amount + 1, moves, isCounter,1)
+        self.row_gap(board_rot, amount + 1, rot_moves, isCounter,2)
+        self.diag_gap(board, amount + 1, moves, isCounter,1)
+        self.diag_gap(board_rot, amount + 1, rot_moves, isCounter,2)
+
+        for move in rot_moves:
+            board_rot_temp = np.array(board_rot)
+            board_rot_temp[move] = 5
+            board_rot_temp = np.rot90(board_rot_temp)
+            np_move = np.where(board_rot_temp == 5)
+            true_move = (np_move[0][0], np_move[1][0])
+            if true_move not in moves:
+                moves.append(true_move)
+               # print("ammened moves", true_move, "bias", amount)
+            #print("llll", moves)
+        return moves
