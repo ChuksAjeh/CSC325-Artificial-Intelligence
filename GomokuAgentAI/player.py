@@ -50,7 +50,7 @@ class Player(GomokuAgent):
 
         for move_and_bias in self.potentialMoves(board):
             # Making sure that we are not likely to go over the time limit by exploring any more moves
-            if (time.time() - startTime) > 3.5:
+            if (time.time() - startTime) > 3.3:
                 break
 
             move = move_and_bias[0]
@@ -61,7 +61,7 @@ class Player(GomokuAgent):
 
             # Initial minimax call with board after potential move has been made, setting the maximum depth for search
             # to 4, setting alpha to large negative and beta to large positive, maximising player set to False
-            move_val = self.miniMax(board_prime, 4, -10000, 10000, False)
+            move_val = self.miniMax(board_prime, 3, -10000, 10000, False)
 
             if bias != 0:
                 if bias == 4:
