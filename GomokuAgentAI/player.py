@@ -61,7 +61,7 @@ class Player(GomokuAgent):
 
             # Initial minimax call with board after potential move has been made, setting the maximum depth for search
             # to 4, setting alpha to large negative and beta to large positive, maximising player set to False
-            move_val = self.miniMax(board_prime, 3, -10000, 10000, False)
+            move_val = self.miniMax(board_prime, 4, -10000, 10000, False)
 
             if bias != 0:
                 if bias == 4:
