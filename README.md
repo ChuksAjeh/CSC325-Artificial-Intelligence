@@ -1,4 +1,4 @@
-# CSC 325 Artficial Intelligence
+# CSC325 Artficial Intelligence
 
 <!--- These are examples. See https://shields.io for others or to customize this set of shields. You might want to include dependencies, project status and licence info here --->
 ![GitHub repo size](https://img.shields.io/github/repo-size/scottydocs/README-template.md)
@@ -17,7 +17,7 @@ Before you begin, ensure you have met the following requirements:
 * You have a `<Windows/Linux/Mac>` machine. State which OS is supported/which is not.
 * You have read `<guide/link/documentation_related_to_project>`.
 
-## Installing <project_name>
+## Installing CSC325 Artficial Intelligence
 
 To install <project_name>, follow these steps:
 
