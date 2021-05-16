@@ -1,4 +1,4 @@
-# Project name
+# CSC 325 Artficial Intelligence
 
 <!--- These are examples. See https://shields.io for others or to customize this set of shields. You might want to include dependencies, project status and licence info here --->
 ![GitHub repo size](https://img.shields.io/github/repo-size/scottydocs/README-template.md)
@@ -30,20 +30,20 @@ Linux and macOS:
 
 Windows:
 ```
-<install_command>
+install Python 3.5 and above 
+install prolog for AI Part 2
 ```
 ## Using <project_name>
 
-To use <project_name>, follow these steps:
+To use CSC325 Artficial Intelligence, follow these steps:
 
 ```
-<usage_example>
+python gomoku GomokuAgentRand MyPlayerAgent
 ```
 
 Add run commands and examples you think users will find useful. Provide an options reference for bonus points!
 
-## Contributing to <project_name>
-<!--- If your README is long or you have some specific process or steps you want contributors to follow, consider creating a separate CONTRIBUTING.md file--->
+## Contributing to CSC 325 Artficial Intelligence
 To contribute to <project_name>, follow these steps:
 
 1. Fork this repository.
@@ -58,15 +58,11 @@ Alternatively see the GitHub documentation on [creating a pull request](https://
 
 Thanks to the following people who have contributed to this project:
 
-* [@scottydocs](https://github.com/scottydocs) 📖
-* [@cainwatson](https://github.com/cainwatson) 🐛
-* [@calchuchesta](https://github.com/calchuchesta) 🐛
-
 You might want to consider using something like the [All Contributors](https://github.com/all-contributors/all-contributors) specification and its [emoji key](https://allcontributors.org/docs/en/emoji-key).
 
 ## Contact
 
-If you want to contact me you can reach me at <your_email@address.com>.
+If you want to contact me you can reach me at chuksajeh1@gmail.com.
 
 ## License
 <!--- If you're not sure which open license to use see https://choosealicense.com/--->
