@@ -19,12 +19,8 @@ Before you begin, ensure you have met the following requirements:
 
 ## Installing CSC325 Artficial Intelligence
 
-To install <project_name>, follow these steps:
+To install CSC325 Artficial Intelligence, follow these steps:
 
-Linux and macOS:
-```
-<install_command>
-```
 
 Windows:
 ```
